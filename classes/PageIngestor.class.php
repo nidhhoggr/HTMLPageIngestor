@@ -2,6 +2,10 @@
 
 class PageIngestor {
 
+  private 
+    $site_domain,
+    $content_width = null;
+
   function __construct($page) {
 
     $this->page = file_get_html($page);
@@ -35,6 +39,9 @@ class PageIngestor {
 
   public function getLinks() {
 
+    if(is_null($this->site_domain))
+      throw new Exception('Must set the site domain');
+ 
     foreach($this->page->find('a') as $anchor) {
      
       $hrefs[] = $anchor->href;
@@ -45,7 +52,7 @@ class PageIngestor {
     foreach($links as $link=>$count) {
 
       if ((substr($link, 0, 7) == 'http://') || (substr($link, 0, 8) == 'https://')) {
-        if(strstr($link,'avianweb.com')) {
+        if(strstr($link, $this->site_domain)) {
           $gl[] = compact('link','count');
         }
       }
@@ -115,6 +122,9 @@ class PageIngestor {
   }
 
   public function getBlockSuggestedPercentage($block) {
+    if(is_null($this->content_width)) 
+      throw new Exception("Must set the content width");
+
     $el = $block['obj'];
     $width = $el->width;
     $suggested = ($width / $this->content_width);
@@ -124,4 +134,8 @@ class PageIngestor {
   public function setFixedContentWidth($width) {
     $this->content_width = $width;
   }
+
+  public function setSiteDomain($domain) {
+    $this->site_domain = $domain;
+  } 
 }

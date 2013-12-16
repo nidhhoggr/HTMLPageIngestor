@@ -1,7 +1,7 @@
 <?php
 
-require_once(dirname(__FILE__) . '/libs/HTML-DOM-Parser/simple_html_dom.php');
-require_once(dirname(__FILE__) . '/libs/SupraModel/SupraModel.class.php');
+require_once(dirname(__FILE__) . '/../libs/HTML-DOM-Parser/simple_html_dom.php');
+require_once(dirname(__FILE__) . '/../libs/SupraModel/SupraModel.class.php');
 
 $dbuser = 'root';
 $dbpassword  = 'root';
