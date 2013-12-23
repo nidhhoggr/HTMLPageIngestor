@@ -6,11 +6,21 @@ class PageIngestor {
     $site_domain,
     $content_width = null;
 
-  function __construct($page) {
+  function __construct($page = false) {
+  
+    if($page) { 
+      $this->_setFilename($page);
+      $this->page = file_get_html($page);
+      $this->_setMeta();
+      $this->_setContent();
+    }
+  }
 
-    $this->page = file_get_html($page);
-    $this->_setMeta();
-    $this->_setContent();
+  private function _setFilename($page) {
+    $fn = explode('/',$page);
+    $fn = array_reverse($fn);
+    $fn = $fn[0];
+    $this->filename = $fn;
   }
 
   private function _setMeta() {
@@ -25,6 +35,10 @@ class PageIngestor {
     $this->content = $this->page->find('div.content', 0);
   }
 
+  public function getFilename() {
+    return $this->filename;
+  } 
+
   public function getMeta() {
     return $this->meta;
   }
@@ -37,15 +51,80 @@ class PageIngestor {
     return $this->content->innertext;
   }
 
-  public function getLinks() {
+  public function getImages($content = false) {
+
+    $srcs = $gl = array();
+
+    if(!$content) {
+      $content = $this->content;
+    }
+    else {
+      $content = str_get_html($content);
+    }
 
     if(is_null($this->site_domain))
       throw new Exception('Must set the site domain');
+
+    foreach($content->find('img') as $img) {
+      $srcs[] = $img->src;
+    }
+
+    if(count($srcs) == 0) return;
+
+    $srcs = array_unique($srcs);
+
+    foreach($srcs as $src) {
+
+      if ((substr($src, 0, 7) == 'http://') || (substr($src, 0, 8) == 'https://')) {
+        if(strstr($src, $this->site_domain)) {
+          $gl[] = compact('link','count');
+        }
+      }
+      else {
+        $gl[] = $src;
+      }
+    }
+
+    return $gl;
+  } 
+
+  public function isSiteDomainBased($src) {
  
-    foreach($this->page->find('a') as $anchor) {
-     
+    if(is_null($this->site_domain))
+      throw new Exception('Must set the site domain');
+
+    $is = false;
+
+    if ((substr($src, 0, 7) == 'http://') || (substr($src, 0, 8) == 'https://')) {
+      if(strstr($src, $this->site_domain)) {
+        $is = true;
+      }
+    }
+
+    return $is;
+  }
+
+  public function getLinks($content = false) {
+
+    if(!$content) {
+      $content = $this->content;
+    }
+    else {
+      $content = str_get_html($content);
+    }
+
+    if(is_null($this->site_domain))
+      throw new Exception('Must set the site domain');
+
+    $hrefs = $gl = array();
+ 
+    foreach($content->find('a') as $anchor) {
+    
+      if(!empty($anchor->href)) 
       $hrefs[] = $anchor->href;
     }
+  
+    if(count($hrefs) == 0) return;
   
     $links = array_count_values($hrefs);
 
@@ -64,9 +143,11 @@ class PageIngestor {
     return $gl;
   } 
 
-  public function getBlocksOfFixedDimensions() {
+  public function getBlocksOfFixedDimensions($content) {
 
-    $blocks = $this->content->find('*[height], *[width]');
+    $blocks = $content->find('*[height], *[width]');
+
+    $info = array();
 
     foreach($blocks as $block) {
  
@@ -87,7 +168,7 @@ class PageIngestor {
 
   private function _getBOFDTagInfo($block) {
  
-    $taginfo = split('>',$block->outertext);
+    $taginfo = explode('>',$block->outertext);
     return $taginfo[0] . '>';
   }
 
@@ -96,9 +177,20 @@ class PageIngestor {
     return !strstr($width,'%');
   }
 
-  public function getFixedPixelBlocks() {
+  public function getFixedPixelBlocks($content = false) {
 
-    $blocks = $this->getBlocksOfFixedDimensions();
+    $info = $overall = array();
+
+    if(!$content) {
+      $content = $this->content;
+    }
+    else {
+      $content = str_get_html($content);
+    }
+
+    $blocks = $this->getBlocksOfFixedDimensions($content);
+
+    if(!count($blocks)) return;
 
     foreach($blocks as $block) {
       if($this->isPixelFix($block['obj'])) {
@@ -106,6 +198,8 @@ class PageIngestor {
         $blocks[$block['taginfo']] = $block['obj'];
       }
     }
+
+    if(count($info) == 0) return;
 
     $counted = array_count_values($info);
     
