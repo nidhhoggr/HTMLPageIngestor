@@ -34,6 +34,15 @@ class WordpressModel extends SupraModel {
   }
 }
 
+class LinksErroredModel extends SupraModel {
+
+    public function configure() {
+        $this->setTable("error");
+    }
+}
+
 $PageModel = new PageModel($connection_args);
 
 $WordpressModel = new WordpressModel($wp_conn_args); 
+
+$LinksErroredModel = new LinksErroredModel($wp_conn_args); 
